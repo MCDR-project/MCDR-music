@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+body{
+    vertical-align: middle;
+    background:
+            linear-gradient(
+                    rgba(98, 90, 238, 0.45),
+                    rgba(98, 90, 238, 0.25)
+            ),
+            url(../assets/background.png);
+    font-family: 'Roboto', serif;
+    -webkit-background-size: cover;
+    background-size: cover;
+}
+
+img{
+    filter: invert(100%);
+    position: absolute;
+    z-index: 1;
+    align: top;
+    cursor: pointer;
+}
+.panel{
+    width:60%;
+    height:70%;
+    background: #22262F;
+    position: absolute;
+    left:50%;
+    border-radius: 10px;
+    transform: translate(-50%, -50%);
+    top:50%;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.25), 0 10px 30px rgba(0,0,0,0.22);
+    transition: all 0.4s;
+}
+
+.hueFooter {
+    font-size: 2vh;
+    color: #707377;
+    right: 4%;
+    position: absolute;
+    bottom: 0;
+}
+
+.footer {
+    font-size: 2vh;
+    color: #707377;
+    left: 4%;
+    position: absolute;
+    bottom: 0;
+}
+
+.panel-content h1 {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    top:25%;
+    font-size: 8vw;
+    color: #fff;
+}
+
+.panel-content h2 {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    top:35%;
+    font-size: 5vw;
+    color: #fff;
+}
+
+.panel-content p {
+    font-size: 2.5vh;
+    color: #707377;
+    text-align: center;
+    left:50%;
+    transform: translate(-50%, -50%);
+    top:65%;
+    position: absolute;
+
+}
+
+.hue-page h2 {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    top:10%;
+    font-size: 2vw;
+    color: #fff;
+}
+
+.hue-page div {
+    font-size: 2.5vh;
+    color: #707377;
+    text-align: center;
+    left:50%;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    position: absolute;
+}
+
+.blurIn {
+    animation-name:blurIn;
+    animation-duration: 0.5s;
+}
+
+@keyframes blurIn {
+    0% {
+        opacity: 0;
+
+        filter: blur(90px);
+    }
+
+    100% {
+        opacity: 1;
+
+        filter: blur(0px);
+    }
+}
+
+input[type="range"] {
+    -webkit-appearance:none;
+    width:70%;
+    height:20px;
+    background: linear-gradient(to right, rgba(98, 90, 238, 0.25) 0%, rgba(98, 90, 238, 1) 100%);
+    overflow:hidden;
+    outline: none;
+    border-radius: 10px;
+}
+
+input[type="range"]:first-of-type {
+    margin-top:30px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    width:20px;
+    height:20px;
+    position:relative;
+    background-color: #FF1744;
+    border-radius: 10px;
+}
+
+@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
+@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
+@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+
+.spinner {
+    -webkit-animation:spin 4s linear infinite;
+    -moz-animation:spin 4s linear infinite;
+    animation:spin 4s linear infinite;
+}
+
+.button {
+    background-color: #00C853;
+    border-radius: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    color: white;
+}
+
+select {
+    background-color:#3498DB;
+    background-repeat:no-repeat;
+    background-position: right 10px top 15px;
+    background-size: 16px 16px;
+    padding:12px;
+    width:auto;
+    font-size:16px;
+    font-weight:bold;
+    color:#fff;
+    text-align:center;
+    text-shadow:0 -1px 0 rgba(0, 0, 0, 0.25);
+    border-radius:3px;
+    -webkit-border-radius:3px;
+    -webkit-appearance: none;
+    border:0;
+    outline:0;
+    -webkit-transition:0.3s ease all;
+    -moz-transition:0.3s ease all;
+    -ms-transition:0.3s ease all;
+    -o-transition:0.3s ease all;
+    transition:0.3s ease all;
+}
+
+.blue-select {
+    background-color:rgb(98, 90, 238);
+}
+
+ul {
+    list-style-type: none;
+}
+
+li {
+    float: left;
+}
+
+.dot {
+    transition: 1s;
+    height: 25px;
+    width: 25px;
+    background-color: #bbb;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.light {
+    text-align: center;
+}
