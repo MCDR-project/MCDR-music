@@ -53,7 +53,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     function i(e) {
       _classCallCheck(this, i);
 
-      this.main = e, this.hueConnected = 'You are now connected with your Philips Hue Lights! Please select your group (you can always change this later) and click "player" in the left bottem corner to return to the home menu.', this.hueLinking = "Press the link button on your hue bridge within %sec% seconds to connect.", this.hueWelcome = "Your Philips Hue lights have not yet been setup with OpenAudioMc. Doing so will give the minecraft server (limited) control over your selected lights to enhance your experience.", this.welcomeMessage = "このページではアトラクションBGM、エリアBGM、ショーBGMを楽しむことができます！", this.errorMessage = "MCDRからログアウトした為接続を解除しました...";
+      this.main = e, this.hueConnected = 'You are now connected with your Philips Hue Lights! Please select your group (you can always change this later) and click "player" in the left bottem corner to return to the home menu.', this.hueLinking = "Press the link button on your hue bridge within %sec% seconds to connect.", this.hueWelcome = "Your Philips Hue lights have not yet been setup with OpenAudioMc. Doing so will give the minecraft server (limited) control over your selected lights to enhance your experience.", this.welcomeMessage = "このページではアトラクション、エリア、ショーなどのBGMをお楽しみ頂けます！", this.errorMessage = "MCDRからログアウトした為接続を解除しました...";
     }
 
     i.prototype.apply = function apply() {
