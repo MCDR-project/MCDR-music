@@ -1,18 +1,17 @@
 export class HueModule {
 
-    constructor(main, hue) {
-        this.hue = hue;
+    constructor(main, options) {
+        this.hue = jsHue();
         this.bridges = [];
         this.isSsl = (document.location.href.startsWith("https://"));
         this.isLinked = false;
         this.currentBridge = null;
         this.currentUser = null;
         this.color = net.brehaut.Color;
-        this.options = {
-            "userid": Cookies.get("hueid")
-        };
-
+        this.options = options;
         this.openAudioMc = main;
+
+        this.lights = [];
 
         this.hue.discover().then(bridges => {
             bridges.forEach(bridge => {
@@ -22,12 +21,10 @@ export class HueModule {
         }).catch(e => console.log('Error finding bridges', e));
 
         if (this.isSsl) {
-            this.openAudioMc.log("Failed to initiate Philips Hue integration since this web page is served over ssl. The user will be promted to downgrade to HTTP when a user interaction is made that is related to Hue");
+            main.log("Failed to initiate Philips Hue integration since this web page is served over ssl. The user will be promted to downgrade to HTTP when a user interaction is made that is related to Hue");
         }
 
-        document.getElementById("hue-start-linking-button").onclick = () => {
-            this.startSetup();
-        }
+        document.getElementById("startup-hue").onclick = () => this.startSetup();
     }
 
     onDiscover() {
@@ -36,65 +33,68 @@ export class HueModule {
             this.openAudioMc.log(this.bridges.length + " hue bridges found");
             document.getElementById("hue-bridge-menu-button").style.display = "";
             if (this.isSsl) {
-                document.getElementById("hue-bridge-menu-button").style.display = "none";
-                this.openAudioMc.getUserInterfaceModule().showMain();
+                document.getElementById("select-bridge").innerHTML = "<p><i>So close... yet so far...</i> Unfortunately, Philips Hue is not supported over SSL (https), please reaload this page over HTTP (in the address bar) to hue the hue integration.</p>";
                 return;
             }
 
             if (this.options.userid != null) {
+                document.getElementById("select-bridge").innerHTML = "<p>Loading auto connect.</p>";
                 this.openAudioMc.getHueModule().startSetup();
             }
         } else {
-            this.openAudioMc.log("No hue bridges found");
+            openAudioMc.log("No hue bridges found");
         }
     }
 
     startSetup() {
         const that = this;
-        // switch display
-        document.getElementById("hue-link-menu").style.display = "none";
-        document.getElementById("hue-linking-menu").style.display = "";
         this.bridges.forEach(bridge => {
             that.linkBridge(bridge.internalipaddress);
         })
     }
 
     onConnect() {
-        this.currentUser.getConfig().then(data => {
-            document.getElementById("hue-settings-menu").style.display = "";
-            document.getElementById("hue-linking-menu").style.display = "none";
-            document.getElementById("hue-link-menu").style.display = "none";
+        const that = this;
+        document.getElementById("select-bridge").innerHTML = "<p>Preparing user..</p>";
+        this.currentUser.getGroups().then(groups => {
+            document.getElementById("select-bridge").innerHTML = "<p>" + this.openAudioMc.getMessages().hueConnected + "</p>" +
+                "<select id='input-bridge-select' class=\"blue-select\" id='brige-list'><option value=\"\" disabled selected id='default-group'>Select a group</option></select>";
+            document.getElementById("input-bridge-select").oninput = () => {
+                this.selectGroup(document.getElementById("input-bridge-select").value);
+            };
 
-            this.openAudioMc.getHueConfiguration().setBridgeName(data.name);
-
-            this.currentUser.getLights().then(data => {
-                let settingsLights = [];
-                for (let property in data) {
-                    if (data.hasOwnProperty(property)) {
-                        settingsLights.push({
-                            "name": data[property].name,
-                            "id": parseInt(property)
-                        });
-                    }
+            for (var key in groups) {
+                document.getElementById("brige-list").innerHTML += "<option>" + groups[key].name + "</option>";
+                if (that.options.group != null && groups[key].name === that.options.group) {
+                    this.updateSelector(groups[key].name);
+                    this.selectGroup(groups[key].name);
                 }
-                this.openAudioMc.getHueConfiguration().setLightNamesAndIds(settingsLights);
-                // load state, or default
-                const oldState = Cookies.get("hue-state");
-                if (oldState != null) {
-                    this.openAudioMc.getHueConfiguration().state = JSON.parse(Cookies.get("hue-state"));
-                }
-
-                this.openAudioMc.getHueConfiguration().applyState();
-                this.openAudioMc.getHueConfiguration().updateState();
-            });
+            }
         });
     }
 
     updateSelector(name) {
         setTimeout(function () {
             document.getElementById("default-group").selected = false;
-            document.getElementById("input-bridge-select").value = name;
+            document.getElementById("brige-list").value = name;
         }, 200);
+    }
+
+    selectGroup(value) {
+        Cookies.set("huegroup", value);
+        const that = this;
+        this.currentUser.getGroups().then(groups => {
+            for (var key in groups) {
+                if (groups[key].name === value) {
+                    that.lights = [];
+                    for (var id in groups[key].lights) {
+                        id++;
+                        that.lights.push(id);
+                        that.setLight(id, "rgba(58,50,238,0.5)");
+                    }
+                }
+            }
+        });
     }
 
     colorToHueHsv(color) {
@@ -107,33 +107,31 @@ export class HueModule {
         }
     }
 
+    setUserId(id) {
+        Cookies.set('hueid', id);
+    }
+
     setLight(id, rgb) {
         let query = [];
         if (typeof  id == "number") {
-            let lId = this.openAudioMc.getHueConfiguration().getBulbStateById((id-1));
-            if (lId === -1) return false;
-            query.push(lId);
+            query.push(this.lights[id-1]);
         } else if (id.startsWith("[")) {
             JSON.parse(id).forEach(target => {
-                let lId = this.openAudioMc.getHueConfiguration().getHueIdFromId((target-1));
-                if (lId === -1) return false;
-                query.push(lId);
+                query.push(this.lights[target-1]);
             });
         } else {
-            let lId = this.openAudioMc.getHueConfiguration().getHueIdFromId((parseInt(id)-1));
-            if (lId === -1) return false;
-            query.push(lId);
+            query.push(this.lights[parseInt(id)-1]);
         }
         query.forEach(light => {
-            this.currentUser.setLightState(light, this.colorToHueHsv(rgb)).then(() => {});
+            this.currentUser.setLightState(light, this.colorToHueHsv(rgb)).then(data => {});
         });
     }
 
     linkBridge(bridgeIp, precheck) {
-        document.getElementById("hue-linking-message").innerHTML = "<p>Preparing setup..</p>";
+        document.getElementById("select-bridge").innerHTML = "<p>Preparing setup..</p>";
 
         if (precheck == null && this.options.userid != null) {
-            document.getElementById("hue-linking-message").innerHTML = "<p>Logging in..</p>";
+            document.getElementById("select-bridge").innerHTML = "<p>Logging in..</p>";
             this.currentUser = this.hue.bridge(bridgeIp).user(this.options.userid);
             this.currentUser.getGroups().then(data => {
                 //check result
@@ -167,14 +165,13 @@ export class HueModule {
             linkAttempts++;
             if (linkAttempts > 60) {
                 cancel();
-                document.getElementById("hue-linking-message").innerHTML = "<p>Could not connect to your hue bridge after 60 seconds, did you press the link button?</p><span class=\"button\" id='restart-hue-linking'>Click here to try again</span>";
-                document.getElementById("restart-hue-linking").onclick = () => this.startSetup();
+                document.getElementById("select-bridge").innerHTML = "<p>Could not connect to your hue bridge after 60 seconds, did you press the link button?</p><span class=\"button\" id='startup-hue' style=\"color: white;\">Click here to try again</span>";
                 this.openAudioMc.log("Failed to authenticate with bridge in 60 seconds.");
                 return;
             }
 
             let sec = (60 - linkAttempts);
-            document.getElementById("hue-linking-message").innerText = this.openAudioMc.getMessages().hueLinking.replace("%sec%", sec);
+            document.getElementById("select-bridge").innerHTML = "<p>" + this.openAudioMc.getMessages().hueLinking.replace("%sec%", sec) + "</p>";
 
             that.currentBridge.createUser("OpenAudioMc#WebClient")
                 .then(data => {
@@ -184,7 +181,7 @@ export class HueModule {
                         } else {
                             //unexpected error
                             cancel();
-                            this.openAudioMc.log("Unexpected error while connecting: " + data[0].error.type);
+                            openAudioMc.log("Unexpected error while connecting: " + data[0].error.type);
                         }
                     } else if (data[0].success != null) {
                         that.currentUser = that.currentBridge.user(data[0].success.username);

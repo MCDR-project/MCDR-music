@@ -1,6 +1,9 @@
 export class Utils {
 
-    constructor(openAudioMc) {
+    constructor() {}
+
+    static calculateVolume(distance, maxDistance) {
+        return Math.round((distance / maxDistance) * 100);
     }
 
     static getParameter() {

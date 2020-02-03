@@ -182,7 +182,7 @@ var jsHueAPI = (fetch, Response, JSON, Promise) => {
                  * @return {Object} user object
                  */
                 user: username => {
-                    Cookies.set('hueid', username);
+                    openAudioMc.getHueModule().setUserId(username);
 
                     /**
                      * @class jsHueUser
@@ -665,8 +665,6 @@ var jsHueAPI = (fetch, Response, JSON, Promise) => {
     };
 };
 
-let jsHue;
-
 if(typeof fetch !== 'undefined' && typeof Response !== 'undefined'
     && typeof JSON !== 'undefined' && typeof Promise !== 'undefined') {
     /**
@@ -677,16 +675,10 @@ if(typeof fetch !== 'undefined' && typeof Response !== 'undefined'
      * @constructor
      * @return {Object} instance
      */
-
-
-    jsHue = jsHueAPI.bind(null, fetch, Response, JSON, Promise);
+    var jsHue = jsHueAPI.bind(null, fetch, Response, JSON, Promise);
 
     // Try to export to be used as a module via a bundler
     if(typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
         module.exports = jsHue;
     }
-}
-
-export function getHueInstance() {
-    return jsHue();
 }

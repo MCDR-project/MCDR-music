@@ -6,16 +6,16 @@ export class WebAudio {
         //audio meta data
         this.meta = {};
         this.openAudioMc = main;
+        this.time = 0;
         this.task = 0;
         this.onFinishHandlers = [];
+        this.isLoading = false;
         this.isPlayable = false;
         this.isFading = false;
         this.isFirstRun = true;
         this.volume = this.openAudioMc.getMediaManager().getMasterVolume();
+        this.hasCustomVolume = false;
         this.flag = "DEFAULT";
-        this._onFadeFinish = null;
-        this._distance = -1;
-        this._maxDistance = -1;
 
         //reference
         const that = this;
@@ -32,7 +32,7 @@ export class WebAudio {
         this.soundElement.setAttribute("display", "none");
 
         //register events
-        this.soundElement.oncanplay = () => {
+        this.soundElement.oncanplay = function () {
             that.isPlayable = true;
             that.isLoading = true;
             if (that.isFirstRun) {
@@ -41,20 +41,20 @@ export class WebAudio {
             }
         };
 
-        this.soundElement.oncanplaythrough = () => {
+        this.soundElement.oncanplaythrough = function () {
             that.isLoading = false;
         };
 
-        this.soundElement.onended = () => {
+        this.soundElement.onended = function () {
             that.isPlayable = true;
-            that.onFinishHandlers.forEach(callback => callback());
+            that.onFinishHandlers.forEach(h => h());
         };
 
-        this.soundElement.onloadstart = () => {
+        this.soundElement.onloadstart = function () {
             that.isLoading = true;
         };
 
-        this.soundElement.ontimeupdate = () => {
+        this.soundElement.ontimeupdate = function () {
             if (that.soundElement != null) that.time = that.soundElement.currentTime;
         };
     }
@@ -68,40 +68,26 @@ export class WebAudio {
     }
 
     setMasterVolume(masterVolume) {
-        if (this.isFading) {
-            clearInterval(this.task);
-            this._executeOnFinish();
+        if (!this.hasCustomVolume) {
+            if (this.isFading) {
+                clearInterval(this.task);
+            }
+            this.setVolume(masterVolume);
         }
-        this.setVolume(masterVolume);
     }
 
     onFinish(callback) {
         this.onFinishHandlers.push(callback);
     }
 
-    _executeOnFinish() {
-        if (this._onFadeFinish != null) this._onFadeFinish();
-        this._onFadeFinish = null;
-    }
-
-    cancelCallback() {
-        this._onFadeFinish = null;
-    }
-
     setVolume(volume, fadetime, onfinish) {
-        //calculate volume if it is a speaker
-        if (this._maxDistance !== -1) {
-            volume = Math.round(((this._maxDistance - this._distance) / this._maxDistance) * this.openAudioMc.getMediaManager().masterVolume);
-        }
         if (fadetime == null) {
             this.soundElement.volume = volume / 100;
             return;
         }
         if (this.isFading) {
             clearInterval(this.task);
-            this._executeOnFinish();
         }
-        this._onFadeFinish = onfinish;
         const diff = volume - (this.soundElement.volume * 100);
         let steps = 0;
 
@@ -116,17 +102,13 @@ export class WebAudio {
         const interval = fadetime / steps;
         const that = this;
         const callback = onfinish;
-        let stepsMade = 0;
 
         this.isFading = true;
-        this.task = setInterval(() => {
-            stepsMade++;
-
-            let cancel = () => {
+        this.task = setInterval(function () {
+            function cancel() {
                 that.isFading = false;
                 if (callback != null) callback();
                 clearInterval(that.task);
-                this._onFadeFinish = null;
             }
 
             if (that.soundElement == null) {
@@ -134,27 +116,12 @@ export class WebAudio {
                 return;
             }
 
-            if (steps < stepsMade) {
-                cancel();
-                return;
-            }
-
             if (volume !== Math.floor((that.soundElement.volume * 100))) {
                 //check if it needs to be higher
                 if (diff > 0) {
-                    const tVol = (Math.ceil((that.soundElement.volume * 100) + 1) / 100);
-                    if (tVol > 1 || tVol < 0) {
-                        cancel();
-                        return;
-                    }
-                    that.soundElement.volume = tVol;
+                    that.soundElement.volume =(Math.ceil((that.soundElement.volume * 100) + 1) / 100);
                 } else if (diff < 0) {
-                    const tVol = (Math.floor((that.soundElement.volume * 100) - 1) / 100);
-                    if (tVol > 1 || tVol < 0) {
-                        cancel();
-                        return;
-                    }
-                    that.soundElement.volume = tVol;
+                    that.soundElement.volume = (Math.floor((that.soundElement.volume * 100) - 1) / 100);
                 } else {
                     cancel();
                 }
@@ -196,13 +163,8 @@ export class WebAudio {
         this.soundElement.play();
     }
 
-    setSpeakerData(maxDistance, distance) {
-        this._maxDistance = maxDistance;
-        this._distance = distance;
-    }
-
-    updateDistance(distance) {
-        this._distance = distance;
+    hasOwnVolume() {
+        return this.hasCustomVolume;
     }
 
     setFlag(flag) {
@@ -211,6 +173,10 @@ export class WebAudio {
 
     getFlag() {
         return this.flag;
+    }
+
+    setHasOwnVolume(state) {
+        this.hasCustomVolume = state;
     }
 
     setLooping(state) {
