@@ -1,81 +1,70 @@
-import {TimeService} from "./modules/TimeService";
-import {Messages} from "./modules/Messages";
-import {UserInterfaceModule} from "./modules/UserInterfaceModule";
-import {HueModule} from "./modules/HueModule";
-import {MediaManager} from "./modules/MediaManager";
-import {SocketModule} from "./modules/SocketModule";
-import {Handlers} from "./modules/Handlers";
+import {TimeService} from "./modules/socket/TimeService";
+import {Messages} from "./modules/ui/Messages";
+import {UserInterfaceModule} from "./modules/ui/UserInterfaceModule";
+import {HueModule} from "./modules/hue/HueModule";
+import {MediaManager} from "./modules/media/MediaManager";
+import {SocketModule} from "./modules/socket/SocketModule";
+import {Handlers} from "./modules/socket/Handlers";
+import {HueConfigurationModule} from "./modules/hue/HueConfigurationModule";
+import {Getters} from "./helpers/Getters";
+import {SocketDirector} from "./modules/socket/SocketDirector";
+import {AlertBox} from "./modules/ui/Notification";
+import {VoiceModule} from "./modules/voice/VoiceModule";
+import {NotificationModule} from "./modules/notifications/NotificationModule";
+import ClientTokenSet from "./helpers/ClientTokenSet";
+import {initAudioContext} from "./modules/voice/objects/AbstractAudio";
+import {getHueInstance} from "./helpers/JsHue";
+import openAudioMc, {linkBootListeners} from "./helpers/StaticFunctions";
 
-console.log('%c Take note! this is a bundled version of OpenAudioMc. To get the full source code, please visit https://github.com/Mindgamesnl/OpenAudioMc', [
-    'background: linear-gradient(#D33106, #571402)'
-    , 'border: 1px solid #3E0E02'
-    , 'color: white'
-    , 'display: block'
-    , 'text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3)'
-    , 'box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 5px 3px -5px rgba(0, 0, 0, 0.5), 0 -13px 5px -10px rgba(255, 255, 255, 0.4) inset'
-    , 'line-height: 40px'
-    , 'text-align: center'
-    , 'font-weight: bold'
-].join(';'));
-
-class OpenAudioMc {
+export class OpenAudioMc extends Getters {
 
     constructor() {
-        //load cookies
-        const hueOptions = {
-            "userid": Cookies.get("hueid"),
-            "group": Cookies.get("huegroup")
-        };
+        super();
 
-        this.log("Enabling the web client for " + window.navigator.userAgent);
-        this.debugPrint("starting.");
+        this.tokenSet = new ClientTokenSet().fromUrl(window.location.href);
+
+        if (this.tokenSet == null) {
+            document.getElementById("welcome-text-landing").innerHTML = "The audio client is only available for players who are online in the server. Use <small>/audio</small> to obtain a URL<br />";
+            return;
+        }
+
+        this.notificationModule = new NotificationModule(this);
         this.timeService = new TimeService();
         this.messages = new Messages(this);
         this.userInterfaceModule = new UserInterfaceModule(this);
-        this.hueModule = new HueModule(this, hueOptions);
+        this.hueConfiguration = new HueConfigurationModule(this);
+        this.hueModule = new HueModule(this, getHueInstance());
         this.mediaManager = new MediaManager(this);
-        this.socketModule = new SocketModule(this, "https://craftmendserver.eu");
-        new Handlers(this);
-        this.messages.apply();
-    }
+        this.userInterfaceModule.showVolumeSlider(false);
+        this.userInterfaceModule.setMessage("Loading proxy..");
 
-    log(message) {
-        console.log("[OpenAudioMc] " + message);
-    }
+        //initialize audio encoding
+        initAudioContext();
 
-    getMessages() {
-        return this.messages;
-    }
+        this.voiceModule = new VoiceModule(this);
+        this.boot();
 
-    getTimeService() {
-        return this.timeService;
-    }
+        // request a socket service, then do the booting
+        const director = new SocketDirector("https://craftmendserver.eu:444");
+        director.route()
+            .then((host) => {
+                this.socketModule = new SocketModule(this, host);
+                this.messages.apply();
 
-    debugPrint(message) {
-        this.log(message);
-    }
-
-    getMediaManager() {
-        return this.mediaManager;
-    }
-
-    getHueModule() {
-        return this.hueModule;
-    }
-
-    getUserInterfaceModule() {
-        return this.userInterfaceModule;
-    }
-
-}
-
-//enable
-let openAudioMc = null;
-
-function enable() {
-    if (openAudioMc == null) {
-        openAudioMc = new OpenAudioMc();
+                // setup packet handler
+                new Handlers(this);
+            })
+            .catch((error) => {
+                console.error("Exception thrown", error.stack);
+                this.userInterfaceModule.kickScreen("Your current URL appears to be invalid. Please request a new one in-game using the /audio command. If this issue if persists please contact a member of staff.")
+                new AlertBox('#alert-area', {
+                    closeTime: 20000,
+                    persistent: false,
+                    hideCloseButton: true,
+                    extra: 'warning'
+                }).show('A networking error occurred while connecting to the server, please request a new url and try again.');
+            });
     }
 }
 
-document.getElementById("start-button").onclick = () => enable();
+linkBootListeners();
